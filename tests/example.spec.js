@@ -1,5 +1,7 @@
 const {test, expect} = require('@playwright/test');
 
+var tokenReceived;
+
 test('Consultando as reservas cadastradas', async ({request}) => {
   const response = await request.get('/booking/');
   
@@ -64,7 +66,7 @@ test('Cadastrando uma reserva', async ({ request }) => {
       "additionalneeds": "Breakfast"
     }
   });
-  // console.log(await response.json());
+  console.log(await response.json());
 
   // Verifica se a resposta da API está OK
   expect(response.ok()).toBeTruthy();
@@ -76,4 +78,63 @@ test('Cadastrando uma reserva', async ({ request }) => {
   expect(responseBody.booking).toHaveProperty("lastname", "RP")
   expect(responseBody.booking).toHaveProperty("totalprice", 111)
   expect(responseBody.booking).toHaveProperty("depositpaid", true)
+})
+
+test('Gerando um token', async ({ request }) => {
+  const response = await request.post('/auth', {
+    data: {
+      "username": "admin",
+      "password": "password123"
+    }
+  })
+    console.log(await response.json());
+
+    expect(response.ok()).toBeTruthy();
+    expect(response.status()).toBe(200);
+
+    const responseBody = await response.json();
+    tokenReceived = responseBody.token;
+    console.log("Seu token é: " + tokenReceived)
+})
+
+test('Gerando um token e atualizando parcialmente um dado', async ({ request }) => {
+  const response = await request.post('/auth', {
+    data: {
+      "username": "admin",
+      "password": "password123"
+    }
+  })
+    console.log(await response.json());
+
+    expect(response.ok()).toBeTruthy();
+    expect(response.status()).toBe(200);
+
+    const responseBody = await response.json();
+    tokenReceived = responseBody.token;
+    console.log("Seu token é: " + tokenReceived)
+
+    const partialUpdateRequest = await request.patch('/booking/1596', {
+      headers: {
+        'Content-Type': 'application/json',
+        'Acccept': 'application/json',
+        'Cookie': `token=${tokenReceived}`
+      },
+      data: {
+        "firstname": "fulano",
+        "lastname": "rodrigues de paula",
+        "totalprice": 332,
+        "depositpaid": false
+      }
+    });
+
+    console.log(await partialUpdateRequest.json());
+    expect(partialUpdateRequest.ok()).toBeTruthy();
+    expect(partialUpdateRequest.status()).toBe(200);
+    const partialUpdatedResponseBody = await partialUpdateRequest.json()
+    expect(partialUpdatedResponseBody).toHaveProperty("firstname","fulano")
+    expect(partialUpdatedResponseBody).toHaveProperty("lastname","rodrigues de paula")
+    expect(partialUpdatedResponseBody).toHaveProperty("totalprice",332)
+    expect(partialUpdatedResponseBody).toHaveProperty("depositpaid",false)
+    
+
 })
